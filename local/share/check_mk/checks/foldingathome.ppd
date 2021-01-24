@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+
+def inventory_FAH(info):
+  yield 'PPD', None
+
+def check_FAH(item, param, info):
+  #Create list for slot outputs
+  PPD = {'slots': {}}
+
+  #Go through lines and capture
+  for line in info:
+    if line[0].startswith('P'):
+      for x,y in eval(' '.join(line[1:])).items():
+        PPD['slots'][x] = y
+
+  #Setup base output
+  PPD['resString'] = "Points per day: %s" % PPD['slots']['T']
+  PPD['perfdata'] = [ ( "PPD", PPD['slots']['T'] ) ]
+
+  #Add other slots to output (as long output)
+  for x,y in PPD['slots'].items():
+    if x == "T":
+      continue
+    else:
+      PPD['resString'] += "\nPPD Slot {0}: {1}".format(x, y)
+      PPD['perfdata'].append(( "PPD " + x, y ))
+
+  #Actually output fully formed information
+  yield 0, PPD['resString'], PPD['perfdata']
+
+check_info["foldingathome.ppd"] = {
+  'check_function':            check_FAH,
+  'inventory_function':        inventory_FAH,
+  'service_description':       'FAH %s',
+  'has_perfdata':              True,
+  'group':                     'foldingathome',
+}

@@ -1,0 +1,5 @@
+*.txt
+*.json
+*.DS_Store
+.vscode/
+*tmp

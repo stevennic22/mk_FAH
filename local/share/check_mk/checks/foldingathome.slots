@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+
+import calendar, time
+
+factory_settings["FAH_slots_default_levels"] = {
+    "Timeout_Alert": False,
+    "Expiry_Alert": False,
+}
+
+def inventory_FAH(info):
+  for line in info:
+    if len(line) == 1 and line[0].startswith('[[') and line[0].endswith(']]'):
+      yield ('%s' % line[0][2:-2], None)
+
+def check_FAH(item, params, info):
+  item_status = {'slot': {}, 'wus': []}
+
+  #Parse slots and work units into item_status variable
+  for line in info:
+    if line[0].startswith('P') or line[0].startswith('[['):
+      continue
+
+    elif line[0].startswith('S'):
+      parsed = eval(' '.join(line[1:]))
+      if parsed['id'] == item:
+        item_status['slot'] = parsed
+
+    elif line[0].startswith('W'):
+      parsed = eval(' '.join(line[1:]))
+      if parsed['slot'] == item:
+        item_status['wus'].append(parsed)
+
+  #Set up response if there are no work units
+  if len(item_status['wus']) < 1:
+    status = 0
+    response = "No slot information available. Is service running?"
+
+    if not item_status.get('slot', False):
+      status = 2
+
+    elif item_status['slot']['status'] == "FAILED":
+      status = 2
+      response = "Status: {0}\nReason: {1}".format(item_status['slot']['status'], item_status['slot']['reason'])
+
+    else:
+      response = "Status: {0}, Active Work Units: 0".format(item_status['slot']['status'])
+
+    yield status, response
+
+  #Parse out various work units
+  else:
+    interim = {'READY': [], 'RUNNING': [], 'SEND': [], 'DOWNLOAD': []}
+
+    for x in item_status['wus']:
+      interim[x['state']].append(x)
+
+    #Print out overall slot status and current work units
+    yield 0, "Status: {0}, Active Work Units: {1}".format(item_status['slot']['status'], len(item_status['wus'])
+
+    expiry = 0
+    expiry_hours = 0
+    timeout = 0
+    timeout_hours = 0
+
+    #Go through individual work units
+    for x, y in interim.items():
+      if len(y) > 0:
+        state = 0
+        if x == "SEND" or x == "DOWNLOAD":
+          state = 1
+
+        #Output slot status and count
+        yield state, "{0}: {1}".format(x, len(y))
+
+        #Parse out timeout and expiry times in hours
+        for z in y:
+          if z["timeout"] == "<invalid>" or z["deadline"] == "<invalid>":
+            continue
+
+          if z["waitingon"] != "WS Assignment":
+            current_time = int(time.time())
+            epoch_timeout = int(calendar.timegm(time.strptime(z["timeout"].replace('Z', 'UTC'), "%Y-%m-%dT%H:%M:%S%Z")))
+            timeout = (epoch_timeout - current_time)
+            timeout_hours = timeout//3600
+            z["timeout_hours"] = timeout_hours
+
+            epoch_expire = int(calendar.timegm(time.strptime(z["deadline"].replace('Z', 'UTC'), "%Y-%m-%dT%H:%M:%S%Z")))
+            expiry = (epoch_expire - current_time)
+            expiry_hours = expiry//3600
+            z["expiry_hours"] = expiry_hours
+
+    #Output running slot information in main check output
+    #Check if slot is completing after it will timeout or expire
+    #Reference: https://foldingforum.org/viewtopic.php?nomobile=1&f=61&t=23205#p335119
+    if len(interim['RUNNING']) > 0:
+      yield 0, "{pctdone} done, ETA: {eta}, Points: {ppd}".format(pctdone=interim['RUNNING'][0]["percentdone"], eta=interim['RUNNING'][0]["eta"], ppd=interim['RUNNING'][0]["ppd"])
+
+      if interim['RUNNING'][0]["waitingon"] != "WS Assignment":
+        if params.get("Expiry_Alert", False):
+          if expiry <= 0:
+            yield 1, "Active work unit expiring in {0} hours".format(expiry_hours)
+
+        if params.get('Timeout_Alert', False):
+          if timeout <= 0:
+            yield 2, "Active work unit timing out in {0} hours".format(timeout_hours)
+
+    #Output which slot it is (CPU/GPU)
+    yield 0, "\nDescription: {0}".format(item_status['slot']['description'])
+
+    #Output all slot JSON information directly
+    for x, y in interim.items():
+      if len(y) > 0:
+        yield 0, "\n{0}: {1}".format(x, y)
+
+check_info["foldingathome.slots"] = {
+  'check_function':            check_FAH,
+  'inventory_function':        inventory_FAH,
+  'service_description':       'FAH Slot %s',
+  'default_levels_variable':   'FAH_slots_default_levels',
+  'has_perfdata':              True,
+  'group':                     'foldingathome',
+}
