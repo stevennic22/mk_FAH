@@ -17,7 +17,7 @@
 | Software
 | ------------------------------------------------------------------------------------------------------
 | [Python 3 (>=3.6.9)](https://www.python.org/downloads/)
-| [checkmk (>=1.6 | <=2.0(untested))](https://checkmk.com/)
+| [checkmk (>=1.6) | <=2.0(untested))](https://checkmk.com/)
 
 
 ### Instructions
