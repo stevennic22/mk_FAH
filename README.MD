@@ -1,7 +1,6 @@
 # mk_FAH
 ### This project is _NOT_ affiliated with Folding@Home. Just a personal project.
-> checkmk special agent plugin for monitoring Folding@Home
-> Monitoring of Folding@Home slots and points without any plugin installation on hosts
+> checkmk special agent plugin for monitoring Folding@Home slots and points without any plugin installation on hosts
 
 ### Features
 
