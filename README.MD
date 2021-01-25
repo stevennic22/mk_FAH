@@ -14,11 +14,10 @@
 
 ### Requirements
 
-| Software
-| ------------------------------------------------------------------------------------------------------
-| [Python 3 (>=3.6.9)](https://www.python.org/downloads/)
-| [checkmk (>=1.6)](https://checkmk.com/)
-| checkmk (>=2.0) untested
+| Software | Version(s) | URL|
+| -|-|-|
+| Python 3| >=3.6.9 | [Python 3](https://www.python.org/downloads/) |
+| checkmk | >= 1.6 (>= 2.0 untested) | [checkmk.com](https://checkmk.com/) |
 
 
 ### Instructions
