@@ -32,3 +32,8 @@
 - [Check Mk Create Own Special Agent](https://digaround.cloud/check-mk-create-own-special-agent/)
 - [checkmk documentation](https://docs.checkmk.com/latest/en/)
 - [Folding@Home base telnet script](https://forums.anandtech.com/threads/folding-home-fahclient-config-control-manual-page.2574018/#post-40108202)
+
+## Screenshots
+![Services generated](https://i.imgur.com/hH2IZRk.png)
+![Points Per Day](https://i.imgur.com/P9biJKx.png)
+![Slots Full output](https://i.imgur.com/lw6ZIyO.png)

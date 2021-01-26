@@ -21,6 +21,15 @@ register_check_parameters(
             (False, _("Do not alert")),
         ],
         default_value=False,
+      )),
+      ("Work_Unit_Output",
+        DropdownChoice(
+          title=_("Set true for full work unit output in long output."),
+          choices=[
+            (True, _("Long output")),
+            (False, _("No output")),
+        ],
+        default_value=False,
       ))
     ]
   ),

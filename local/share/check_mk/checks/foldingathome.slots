@@ -108,9 +108,10 @@ def check_FAH(item, params, info):
     yield 0, "\nDescription: {0}".format(item_status['slot']['description'])
 
     #Output all slot JSON information directly
-    for x, y in interim.items():
-      if len(y) > 0:
-        yield 0, "\n{0}: {1}".format(x, y)
+    if params.get('Work_Unit_Output', False):
+      for x, y in interim.items():
+        if len(y) > 0:
+          yield 0, "\n{0}: {1}".format(x, y)
 
 check_info["foldingathome.slots"] = {
   'check_function':            check_FAH,
