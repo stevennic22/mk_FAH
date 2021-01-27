@@ -34,6 +34,12 @@
 - [Folding@Home base telnet script](https://forums.anandtech.com/threads/folding-home-fahclient-config-control-manual-page.2574018/#post-40108202)
 
 ## Screenshots
+
+- Services overview:
 ![Services generated](https://i.imgur.com/hH2IZRk.png)
+
+- Estimated points per day:
 ![Points Per Day](https://i.imgur.com/P9biJKx.png)
+
+- Slot Full output:
 ![Slots Full output](https://i.imgur.com/lw6ZIyO.png)

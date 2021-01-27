@@ -57,9 +57,7 @@ def check_FAH(item, params, info):
     #Print out overall slot status and current work units
     yield 0, "Status: {0}, Active Work Units: {1}".format(item_status['slot']['status'], len(item_status['wus'])
 
-    expiry = 0
     expiry_hours = 0
-    timeout = 0
     timeout_hours = 0
 
     #Go through individual work units
@@ -80,29 +78,39 @@ def check_FAH(item, params, info):
           if z["waitingon"] != "WS Assignment":
             current_time = int(time.time())
             epoch_timeout = int(calendar.timegm(time.strptime(z["timeout"].replace('Z', 'UTC'), "%Y-%m-%dT%H:%M:%S%Z")))
-            timeout = (epoch_timeout - current_time)
-            timeout_hours = timeout//3600
-            z["timeout_hours"] = timeout_hours
+            z["timeout_hours"] = (epoch_timeout - current_time)//3600
 
             epoch_expire = int(calendar.timegm(time.strptime(z["deadline"].replace('Z', 'UTC'), "%Y-%m-%dT%H:%M:%S%Z")))
-            expiry = (epoch_expire - current_time)
-            expiry_hours = expiry//3600
-            z["expiry_hours"] = expiry_hours
+            z["expiry_hours"] = (epoch_expire - current_time)//3600
 
     #Output running slot information in main check output
     #Check if slot is completing after it will timeout or expire
     #Reference: https://foldingforum.org/viewtopic.php?nomobile=1&f=61&t=23205#p335119
+
     if len(interim['RUNNING']) > 0:
-      yield 0, "{pctdone} done, ETA: {eta}, Points: {ppd}".format(pctdone=interim['RUNNING'][0]["percentdone"], eta=interim['RUNNING'][0]["eta"], ppd=interim['RUNNING'][0]["ppd"])
+      workunit = interim['RUNNING'][0]
+    elif len(interim['READY']) > 0:
+      workunit = interim['READY'][0]
 
-      if interim['RUNNING'][0]["waitingon"] != "WS Assignment":
-        if params.get("Expiry_Alert", False):
-          if expiry <= 0:
-            yield 1, "Active work unit expiring in {0} hours".format(expiry_hours)
+    try:
+      if "hours" in workunit["eta"]:
+        workunit["eta_hours"] = int(workunit["eta"][:workunit["eta"].find('hours')-1])
+      else:
+        workunit["eta_hours"] = int(workunit["eta"][:workunit["eta"].find('mins')-1])//60
 
+      yield 0, "{pctdone} done, ETA: {eta}, Points: {ppd}".format(pctdone=workunit["percentdone"], eta=workunit["eta"], ppd=workunit["ppd"])
+
+      #If eta_hours is less or equal to timeout/expiry hours, alert
+      if workunit["waitingon"] != "WS Assignment":
         if params.get('Timeout_Alert', False):
-          if timeout <= 0:
-            yield 2, "Active work unit timing out in {0} hours".format(timeout_hours)
+          if workunit['timeout_hours'] <= workunit['eta_hours']:
+            yield 2, "Work unit times out before ETA. Times out in {0} hours".format(workunit['timeout_hours'])
+
+        if params.get("Expiry_Alert", False):
+          if workunit['expiry_hours'] <= workunit['eta_hours'] and (params.get('Timeout_Alert', False) and workunit['timeout_hours'] > workunit['eta_hours']):
+            yield 1, "Work unit expires before ETA. Expires in {0} hours".format(workunit['expiry_hours'])
+    except ValueError:
+      pass
 
     #Output which slot it is (CPU/GPU)
     yield 0, "\nDescription: {0}".format(item_status['slot']['description'])
