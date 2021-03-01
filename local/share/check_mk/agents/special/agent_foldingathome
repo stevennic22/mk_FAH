@@ -36,11 +36,12 @@ def parse_duration(dur):
 
 # Class to handle client information and connections
 class FAHClients:
-  def __init__(self, ip, port, timeout):
+  def __init__(self, ip, port, timeout, auth):
     self.ip = ip
     self.port = port
     self.timeout = timeout
     self.host_ppd = 0
+    self.auth = auth
 
   #Class function to gather queue information and handle connection to servers
   def connect_to_server(self):
@@ -58,6 +59,12 @@ class FAHClients:
           self.tn.close()
           x += 1
           continue
+
+        if hasattr(self, 'auth') and self.auth is not None:
+          self.tn.write('auth {0}\n'.format(self.auth).encode())
+          passbuf = self.tn.read_until(b'\n>', self.timeout).decode('utf-8')
+          if "FAILED" in passbuf:
+            raise ValueError("Invalid Credentials")
 
         self.tn.write(b'slot-info\n')
         slotbuf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
@@ -80,12 +87,15 @@ class FAHClients:
           raise(TimeoutError)
 
     except TimeoutError:
-      self.error = "Cannot retrieve info"
+      self.error = "Error: Timeout, Cannot retrieve information"
+
+    except ValueError:
+      self.error = "Error: Invalid credentials"
 
     except:
       if debug:
         print(sys.exc_info())
-      self.error = "Cannot connect"
+      self.error = "Error: Unknown error, Cannot connect"
 
   #Parses the information for each host
   def parse_info(self):
@@ -106,14 +116,18 @@ def parse_arguments(argv):
   required_param_group = parser.add_argument_group('required arguments')
   required_param_group.add_argument('-i', '--ip', type=str, default="localhost", metavar="10.10.10.7", help='Hostname or IP-address of Folding@Home server')
   required_param_group.add_argument('-p', '--port', type=positive_int, default=36330, metavar="36330", help='Port for Folding Telnet server')
+  parser.add_argument('-a', '--auth', type=str, default=None, metavar="password", help="password/credentials for telnet connection")
   parser.add_argument('-h', '--help', action='store_true', help="print this help message and exit")
-  parser.add_argument('-t', '--timeout', type=positive_int, default=30, metavar="30", help='Set the network timeout for the Folding@Home connection to TIMEOUT seconds.')
+  parser.add_argument('-t', '--timeout', type=positive_int, default=15, metavar="30", help='Set the network timeout for the Folding@Home connection to TIMEOUT seconds.')
   parser.add_argument('-d', '--debug', default=False, action='store_true')
 
   args = parser.parse_args()
 
   if args.debug:
     print(args)
+
+  if args.auth == "":
+    args.auth = None
 
   if args.help:
     parser.print_help()
@@ -123,12 +137,12 @@ def parse_arguments(argv):
 
 def main(argv):
   args = parse_arguments(argv)
-  global debug 
+  global debug
   debug = args.debug
 
   print('<<<foldingathome>>>')
   total_ppd = 0
-  host = FAHClients(args.ip, args.port, args.timeout)
+  host = FAHClients(args.ip, args.port, args.timeout, args.auth)
 
   host.connect_to_server()
 

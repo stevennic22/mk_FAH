@@ -20,7 +20,8 @@ def _valuespec_special_agent_foldingathome():
         help=_("The port that Folding@Home is listening on."),
         optional_keys=[],
         elements=[
-            ("port", TextAscii(title=_("TCP port"), allow_empty=False)),
+            ("port", TextAscii(title=_("Port to connect to"), default_value='36330', allow_empty=False)),
+            ('auth', TextAscii(title=_("Telnet password (Leave blank for no password)"), allow_empty=True)),
         ],
     )
 

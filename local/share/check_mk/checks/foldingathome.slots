@@ -35,7 +35,11 @@ def check_FAH(item, params, info):
     status = 0
     response = "No slot information available. Is service running?"
 
-    if not item_status.get('slot', False):
+    if info[0][0] == "Error:":
+      status = 2
+      response = " ".join(info[0])[7:]
+
+    elif not item_status.get('slot', False):
       status = 2
 
     elif item_status['slot']['status'] == "FAILED":

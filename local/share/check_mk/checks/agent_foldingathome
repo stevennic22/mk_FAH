@@ -6,6 +6,8 @@ def agent_foldingathome_arguments(params, hostname, ipaddress):
 
     args += ["-i", ipaddress]
     args += ["-p", params['port']]
+    auth = params.get('auth', '')
+    args += ["-a", auth]
 
     return args
 
