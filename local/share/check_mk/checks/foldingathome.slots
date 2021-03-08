@@ -102,9 +102,7 @@ def check_FAH(item, params, info):
       try:
         if "hours" in workunit["eta"]:
           workunit["eta_hours"] = int(workunit["eta"][:workunit["eta"].find('hours')-1])
-        elif "mins" in workunit["eta"]:
-          workunit["eta_hours"] = int(workunit["eta"][:workunit["eta"].find('mins')-1])//60
-        else: 
+        else:
           workunit["eta_hours"] = 0
 
         yield 0, "{pctdone} done, ETA: {eta}, Points: {ppd}".format(pctdone=workunit["percentdone"], eta=workunit["eta"], ppd=workunit["ppd"])

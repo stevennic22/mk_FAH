@@ -43,6 +43,28 @@ class FAHClients:
     self.host_ppd = 0
     self.auth = auth
 
+  #Class function to gather and print agent information
+  def print_header(self):
+    print('<<<check_mk>>>')
+
+    print("AgentOS: telnetlib-{0}".format(sys.version.split(" ")[0]))
+    print(self.parse_version())
+    print('<<<foldingathome>>>')
+
+  #Class function to parse and print version info from connect_to_server output
+  def parse_version(self):
+    if hasattr(self, "info"):
+      if 'Version' in self.info[1][1]:
+        return("Version: " + str(self.info[1][1][1]))
+      else:
+        for x in self.info:
+          if "FAHClient" in x:
+            for y in x:
+              if "Version" in y:
+                return("Version: " + str(y[1]))
+    else:
+      return("Version: Unknown")
+
   #Class function to gather queue information and handle connection to servers
   def connect_to_server(self):
     try:
@@ -66,15 +88,23 @@ class FAHClients:
           if "FAILED" in passbuf:
             raise ValueError("Invalid Credentials")
 
+        #Gather FAHClient info
+        self.tn.write(b'info\n')
+        infobuf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
+        self.info = eval(infobuf.split('PyON 1 info\n')[1].split('\n---\n')[0])
+
+        #Gather slot info
         self.tn.write(b'slot-info\n')
         slotbuf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
         self.slots = eval(slotbuf.split('PyON 1 slots\n')[1].split('\n---\n')[0])
 
+        #Gather queue info
         self.tn.write(b'queue-info\n')
         bufdec = self.tn.read_until(b'---\n>', self.timeout).decode('utf-8')
         self.tn.write(b'exit\n')
         self.tn.close()
 
+        #Break from while loop if queue output is > 0
         if len(bufdec.split('PyON 1 units\n')) > 1:
           self.queue = eval(bufdec.split('PyON 1 units\n')[1].split('\n---\n')[0])
           if len(self.queue) > 0:
@@ -98,7 +128,7 @@ class FAHClients:
       self.error = "Error: Unknown error, Cannot connect"
 
   #Parses the information for each host
-  def parse_info(self):
+  def parse_ppd_info(self):
     for i in self.queue:
       #Store targeted information from queue based on state
       if i['state'] == 'RUNNING':
@@ -140,11 +170,11 @@ def main(argv):
   global debug
   debug = args.debug
 
-  print('<<<foldingathome>>>')
   total_ppd = 0
   host = FAHClients(args.ip, args.port, args.timeout, args.auth)
 
   host.connect_to_server()
+  host.print_header()
 
   #Skip parsing information if no information to parse.
   if hasattr(host, "error"):
@@ -163,7 +193,7 @@ def main(argv):
       if wu['state'] == "RUNNING":
         print("P: {{'{0}': {1}}}".format(slot['id'] , wu['ppd']))
 
-  host.parse_info()
+  host.parse_ppd_info()
 
   total_ppd += host.host_ppd
 
