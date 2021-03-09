@@ -65,6 +65,16 @@ class FAHClients:
     else:
       return("Version: Unknown")
 
+  def gather_from_server(self, query, split_string='', evaluate = True):
+    self.tn.write(query.encode() + b'\n')
+    buf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
+
+    if evaluate:
+      temp = eval(buf.split(split_string)[1].split('\n---\n')[0])
+      return(temp)
+    else:
+      return(buf)
+
   #Class function to gather queue information and handle connection to servers
   def connect_to_server(self):
     try:
@@ -89,24 +99,20 @@ class FAHClients:
             raise ValueError("Invalid Credentials")
 
         #Gather FAHClient info
-        self.tn.write(b'info\n')
-        infobuf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
-        self.info = eval(infobuf.split('PyON 1 info\n')[1].split('\n---\n')[0])
+        self.info = self.gather_from_server('info', split_string='PyON 1 info\n')
 
         #Gather slot info
-        self.tn.write(b'slot-info\n')
-        slotbuf = self.tn.read_until(b'---\n', self.timeout).decode('utf-8')
-        self.slots = eval(slotbuf.split('PyON 1 slots\n')[1].split('\n---\n')[0])
+        self.slots = self.gather_from_server('slot-info', split_string='PyON 1 slots\n')
 
         #Gather queue info
-        self.tn.write(b'queue-info\n')
-        bufdec = self.tn.read_until(b'---\n>', self.timeout).decode('utf-8')
+        queuebuf = self.gather_from_server('queue-info', evaluate=False)
+
         self.tn.write(b'exit\n')
         self.tn.close()
 
         #Break from while loop if queue output is > 0
-        if len(bufdec.split('PyON 1 units\n')) > 1:
-          self.queue = eval(bufdec.split('PyON 1 units\n')[1].split('\n---\n')[0])
+        if len(queuebuf.split('PyON 1 units\n')) > 1:
+          self.queue = eval(queuebuf.split('PyON 1 units\n')[1].split('\n---\n')[0])
           if len(self.queue) > 0:
             break
 
@@ -115,6 +121,9 @@ class FAHClients:
       else:
         if not hasattr(self, "queue"):
           raise(TimeoutError)
+
+    except ConnectionRefusedError:
+      self.error = "Error: Connection refused"
 
     except TimeoutError:
       self.error = "Error: Timeout, Cannot retrieve information"
@@ -171,21 +180,21 @@ def main(argv):
   debug = args.debug
 
   total_ppd = 0
-  host = FAHClients(args.ip, args.port, args.timeout, args.auth)
+  server = FAHClients(args.ip, args.port, args.timeout, args.auth)
 
-  host.connect_to_server()
-  host.print_header()
+  server.connect_to_server()
+  server.print_header()
 
   #Skip parsing information if no information to parse.
-  if hasattr(host, "error"):
-    print(host.error)
+  if hasattr(server, "error"):
+    print(server.error)
     print("P: {{'T': {0}}}".format(total_ppd))
     exit()
 
-  for slot in host.slots:
+  for slot in server.slots:
     print('[[' + slot['id'] + ']]')
     print("S: {0}".format(slot))
-    for wu in host.queue:
+    for wu in server.queue:
       if slot['id'] != wu['slot']:
         continue
       print("W: {0}".format(wu))
@@ -193,9 +202,9 @@ def main(argv):
       if wu['state'] == "RUNNING":
         print("P: {{'{0}': {1}}}".format(slot['id'] , wu['ppd']))
 
-  host.parse_ppd_info()
+  server.parse_ppd_info()
 
-  total_ppd += host.host_ppd
+  total_ppd += server.host_ppd
 
   print("P: {{'T': {0}}}".format(total_ppd))
 
