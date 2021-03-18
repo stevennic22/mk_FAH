@@ -33,7 +33,7 @@ def check_FAH(item, params, info):
   #Set up response if there are no work units
   if len(item_status['wus']) < 1:
     status = 0
-    response = "No slot information available. Is service running?"
+    response = "Error: No slot information available. Is service running?"
 
     if info[0][0] == "Error:":
       status = 2

@@ -23,7 +23,7 @@ def check_FAH(item, param, info):
       continue
     else:
       PPD['resString'] += "\nPPD Slot {0}: {1}".format(x, y)
-      PPD['perfdata'].append(( "PPD " + x, y ))
+      PPD['perfdata'].append(( "PPD_" + x, y ))
 
   #Actually output fully formed information
   yield 0, PPD['resString'], PPD['perfdata']
