@@ -59,7 +59,7 @@ def check_FAH(item, params, info):
       interim[x['state']].append(x)
 
     #Print out overall slot status and current work units
-    yield 0, "Status: {0}, Active Work Units: {1}".format(item_status['slot']['status'], len(item_status['wus'])
+    yield 0, "Status: {0}, Active Work Units: {1}".format(item_status['slot']['status'], len(item_status['wus']))
 
     expiry_hours = 0
     timeout_hours = 0
